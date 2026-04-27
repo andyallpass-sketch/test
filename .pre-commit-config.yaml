@@ -1,0 +1,19 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+
+  # 推薦使用 ruff 來取代 flake8, black, isort 等工具，速度極快且與 uv 同為 Astral 出品
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4 # 這裡可以替換成最新的 Ruff 版本
+    hooks:
+      # Linter
+      - id: ruff
+        args: [ --fix ]
+      # Formatter
+      - id: ruff-format
