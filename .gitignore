@@ -11,3 +11,6 @@ __pycache__/
 
 # pre-commit
 .pre-commit-config.yaml.rej
+
+# Environment variables
+.env

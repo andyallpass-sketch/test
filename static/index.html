@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Chat</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f1115;
+            color: #e5e7eb;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: #1a1d24;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            height: 85vh;
+            overflow: hidden;
+            border: 1px solid #2d3139;
+        }
+        .chat-header {
+            padding: 24px;
+            background: linear-gradient(135deg, #1d9bf0, #005a9c);
+            color: white;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .chat-messages {
+            flex-grow: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .message {
+            max-width: 80%;
+            padding: 14px 18px;
+            border-radius: 18px;
+            line-height: 1.5;
+            font-size: 0.95rem;
+            word-wrap: break-word;
+        }
+        .message.user {
+            align-self: flex-end;
+            background-color: #1d9bf0;
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+        .message.ai {
+            align-self: flex-start;
+            background-color: #2d3139;
+            color: #e5e7eb;
+            border-bottom-left-radius: 4px;
+        }
+        .chat-input-container {
+            padding: 20px 24px;
+            background-color: #1a1d24;
+            border-top: 1px solid #2d3139;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .chat-input-container input {
+            flex-grow: 1;
+            padding: 16px 20px;
+            border: 1px solid #383d47;
+            border-radius: 24px;
+            background-color: #0f1115;
+            color: #e5e7eb;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .chat-input-container input:focus {
+            border-color: #1d9bf0;
+            box-shadow: 0 0 0 2px rgba(29, 155, 240, 0.2);
+        }
+        .chat-input-container button {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 24px;
+            background-color: #1d9bf0;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .chat-input-container button:hover {
+            background-color: #1a8cd8;
+        }
+        .chat-input-container button:active {
+            transform: scale(0.96);
+        }
+        .loading {
+            align-self: flex-start;
+            color: #8b949e;
+            font-size: 0.9rem;
+            font-style: italic;
+            display: none;
+            padding-left: 10px;
+        }
+
+        /* 滾動條樣式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #383d47;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b515d;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">Gemini 對話框</div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="message ai">哈囉！我是 Gemini，很高興為您服務。請問有什麼我可以幫忙的嗎？</div>
+        </div>
+        <div class="loading" id="loadingIndicator">Gemini 正在思考...</div>
+        <div class="chat-input-container">
+            <input type="text" id="userInput" placeholder="輸入您的訊息..." autocomplete="off" />
+            <button onclick="sendMessage()">發送</button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        userInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // 新增使用者訊息
+            addMessage(message, 'user');
+            userInput.value = '';
+            
+            // 將視窗捲動到底部
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // 顯示載入中動畫
+            loadingIndicator.style.display = 'block';
+            chatMessages.appendChild(loadingIndicator); // 將載入動畫移到底部
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await response.json();
+                
+                // 隱藏載入中動畫
+                loadingIndicator.style.display = 'none';
+
+                if (data.error) {
+                    addMessage('發生錯誤: ' + data.error, 'ai');
+                } else {
+                    addMessage(data.reply, 'ai');
+                }
+            } catch (error) {
+                loadingIndicator.style.display = 'none';
+                addMessage('連線錯誤，請檢查伺服器狀態。', 'ai');
+            }
+        }
+
+        function addMessage(text, sender) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender}`;
+            msgDiv.textContent = text;
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    </script>
+</body>
+</html>
